@@ -31,16 +31,60 @@ class TicketHandler(BaseHandler):
             "type": "object",
             "properties": {
                 "criteria": {
-                    "type": "string", 
+                    "type": "string",
                     "enum": ["default", "Closed"],
-                    "description": "Selection criteria for tickets: 'default' (tickets with close date or last modified date > 1 day ago) or 'closed' (tickets with status equals 'Closed')"
+                    "description": "Selection criteria: 'default' returns recently active tickets (close date or last modified > 1 day ago); 'Closed' returns tickets in a closed pipeline stage"
                 },
-                "limit": {"type": "integer", "description": "Maximum number of tickets to return (default: 50)"},
-                "max_retries": {"type": "integer", "description": "Maximum number of retry attempts for rate limiting (default: 3)"},
-                "retry_delay": {"type": "number", "description": "Initial delay between retries in seconds (default: 1.0)"}
+                "limit": {"type": "integer", "description": "Maximum number of tickets to return (default: 50)"}
             },
         }
     
+    def get_create_ticket_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "subject": {"type": "string", "description": "Ticket subject/title"},
+                "content": {"type": "string", "description": "Ticket description/body"},
+                "hs_pipeline": {"type": "string", "description": "Pipeline ID (default: '0')"},
+                "hs_pipeline_stage": {"type": "string", "description": "Pipeline stage ID"},
+                "hs_ticket_priority": {
+                    "type": "string",
+                    "enum": ["LOW", "MEDIUM", "HIGH"],
+                    "description": "Ticket priority"
+                },
+                "hubspot_owner_id": {"type": "string", "description": "HubSpot owner ID"},
+                "properties": {"type": "object", "description": "Additional ticket properties"}
+            },
+            "required": ["subject"]
+        }
+
+    def get_update_ticket_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "ticket_id": {"type": "string", "description": "HubSpot ticket ID to update"},
+                "properties": {
+                    "type": "object",
+                    "description": "Object containing the properties to update"
+                }
+            },
+            "required": ["ticket_id", "properties"]
+        }
+
+    def get_ticket_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "ticket_id": {"type": "string", "description": "HubSpot ticket ID"},
+                "properties": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional list of properties to retrieve"
+                }
+            },
+            "required": ["ticket_id"]
+        }
+
     def get_ticket_conversation_threads_schema(self) -> Dict[str, Any]:
         """Get the input schema for ticket conversation threads.
         
@@ -130,6 +174,58 @@ class TicketHandler(BaseHandler):
         except Exception as e:
             self.logger.error(f"Error storing tickets in FAISS: {str(e)}", exc_info=True)
     
+    def create_ticket(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
+        self.validate_required_arguments(arguments, ["subject"])
+
+        properties = {"subject": arguments["subject"]}
+        for field in ["content", "hs_pipeline", "hs_pipeline_stage", "hs_ticket_priority", "hubspot_owner_id"]:
+            if field in arguments:
+                properties[field] = arguments[field]
+        if "properties" in arguments:
+            properties.update(arguments["properties"])
+
+        results = self.hubspot.tickets.create(properties)
+
+        try:
+            data = json.loads(results)
+            self.store_in_faiss_safely([data], "ticket", {"action": "created"})
+        except Exception as e:
+            self.logger.error(f"Error storing ticket in FAISS: {str(e)}")
+
+        return self.create_text_response(results)
+
+    def update_ticket(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
+        self.validate_required_arguments(arguments, ["ticket_id", "properties"])
+
+        ticket_id = arguments["ticket_id"]
+        properties = arguments["properties"]
+
+        results = self.hubspot.tickets.update(ticket_id, properties)
+
+        try:
+            data = json.loads(results)
+            self.store_in_faiss_safely([data], "ticket", {"ticket_id": ticket_id, "updated": True})
+        except Exception as e:
+            self.logger.error(f"Error storing ticket in FAISS: {str(e)}")
+
+        return self.create_text_response(results)
+
+    def get_ticket(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
+        self.validate_required_arguments(arguments, ["ticket_id"])
+
+        ticket_id = arguments["ticket_id"]
+        properties = arguments.get("properties")
+
+        results = self.hubspot.tickets.get_by_id(ticket_id, properties)
+
+        try:
+            data = json.loads(results)
+            self.store_in_faiss_safely([data], "ticket", {"ticket_id": ticket_id})
+        except Exception as e:
+            self.logger.error(f"Error storing ticket in FAISS: {str(e)}")
+
+        return self.create_text_response(results)
+
     def get_ticket_conversation_threads(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
         """Get conversation threads associated with a specific ticket.
         

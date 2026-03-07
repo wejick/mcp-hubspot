@@ -144,6 +144,42 @@ class ContactClient:
         
         return api_response.to_dict()
     
+    @handle_hubspot_errors
+    def search(
+        self,
+        filters: List[Dict[str, Any]],
+        properties: Optional[List[str]] = None,
+        limit: int = 10,
+        sort_property: str = "lastmodifieddate"
+    ) -> str:
+        """Search contacts with custom filters.
+
+        Args:
+            filters: List of filter dicts with propertyName, operator, value
+            properties: Optional list of properties to retrieve
+            limit: Maximum number of results to return
+            sort_property: Property to sort by
+
+        Returns:
+            JSON string with search results
+        """
+        search_request = PublicObjectSearchRequest(
+            filter_groups=[{"filters": filters}],
+            sorts=[{"propertyName": sort_property, "direction": "DESCENDING"}],
+            limit=limit,
+            properties=properties or ["firstname", "lastname", "email", "phone", "company",
+                                       "hs_lastmodifieddate", "lastmodifieddate"]
+        )
+        search_response = self.client.crm.contacts.search_api.do_search(
+            public_object_search_request=search_request
+        )
+        contacts_dict = [contact.to_dict() for contact in search_response.results]
+        converted = convert_datetime_fields(contacts_dict)
+        return json.dumps({
+            "results": converted,
+            "total": search_response.total
+        })
+
     def _find_existing_contact(
         self, 
         firstname: str, 

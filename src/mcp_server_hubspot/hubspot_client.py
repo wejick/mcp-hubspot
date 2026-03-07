@@ -18,6 +18,10 @@ from .clients.contact_client import ContactClient
 from .clients.conversation_client import ConversationClient
 from .clients.ticket_client import TicketClient
 from .clients.property_client import PropertyClient
+from .clients.deal_client import DealClient
+from .clients.association_client import AssociationClient
+from .clients.engagement_client import EngagementClient
+from .clients.pipeline_client import PipelineClient
 
 # Re-export ApiException
 __all__ = ["HubSpotClient", "ApiException"]
@@ -46,6 +50,10 @@ class HubSpotClient:
         self.conversations = ConversationClient(self.client, self.access_token, self.thread_storage)
         self.tickets = TicketClient(self.client, self.access_token)
         self.properties = PropertyClient(self.client, self.access_token)
+        self.deals = DealClient(self.client, self.access_token)
+        self.associations = AssociationClient(self.client, self.access_token)
+        self.engagements = EngagementClient(self.client, self.access_token)
+        self.pipelines = PipelineClient(self.client, self.access_token)
     
     def _get_access_token(self, access_token: Optional[str]) -> str:
         """Retrieve and validate the HubSpot access token.
