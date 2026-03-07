@@ -93,6 +93,42 @@ class CompanyClient:
         converted_company = convert_datetime_fields(company_dict)
         return json.dumps(converted_company)
 
+    @handle_hubspot_errors
+    def search(
+        self,
+        filters: List[Dict[str, Any]],
+        properties: Optional[List[str]] = None,
+        limit: int = 10,
+        sort_property: str = "lastmodifieddate"
+    ) -> str:
+        """Search companies with custom filters.
+
+        Args:
+            filters: List of filter dicts with propertyName, operator, value
+            properties: Optional list of properties to retrieve
+            limit: Maximum number of results to return
+            sort_property: Property to sort by
+
+        Returns:
+            JSON string with search results
+        """
+        search_request = PublicObjectSearchRequest(
+            filter_groups=[{"filters": filters}],
+            sorts=[{"propertyName": sort_property, "direction": "DESCENDING"}],
+            limit=limit,
+            properties=properties or ["name", "domain", "industry", "phone",
+                                       "city", "country", "lastmodifieddate"]
+        )
+        search_response = self.client.crm.companies.search_api.do_search(
+            public_object_search_request=search_request
+        )
+        companies_dict = [company.to_dict() for company in search_response.results]
+        converted = convert_datetime_fields(companies_dict)
+        return json.dumps({
+            "results": converted,
+            "total": search_response.total
+        })
+
     def _create_company_search_request(self, limit: int) -> PublicObjectSearchRequest:
         """Create a search request for companies sorted by last modified date.
         

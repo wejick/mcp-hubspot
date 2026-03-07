@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Literal
 from datetime import datetime, timedelta
 
 from hubspot import HubSpot
-from hubspot.crm.tickets import PublicObjectSearchRequest
+from hubspot.crm.tickets import PublicObjectSearchRequest, SimplePublicObjectInputForCreate, SimplePublicObjectInput
 from hubspot.crm.contacts.exceptions import ApiException
 
 from ..core.formatters import convert_datetime_fields
@@ -252,6 +252,73 @@ class TicketClient:
                     # Not a rate limiting or server error, re-raise
                     raise
     
+    @handle_hubspot_errors
+    def get_by_id(self, ticket_id: str, properties: Optional[List[str]] = None) -> str:
+        """Get a specific ticket by ID from HubSpot.
+
+        Args:
+            ticket_id: HubSpot ticket ID
+            properties: Optional list of properties to retrieve
+
+        Returns:
+            JSON string with ticket data
+        """
+        default_props = [
+            "subject", "content", "hs_pipeline", "hs_pipeline_stage",
+            "hs_ticket_status", "hs_ticket_priority", "createdate",
+            "closedate", "hs_lastmodifieddate"
+        ]
+        ticket = self.client.crm.tickets.basic_api.get_by_id(
+            ticket_id=ticket_id,
+            properties=properties or default_props,
+            archived=False
+        )
+        ticket_dict = ticket.to_dict()
+        converted = convert_datetime_fields(ticket_dict)
+        return json.dumps(converted)
+
+    @handle_hubspot_errors
+    def create(self, properties: Dict[str, Any]) -> str:
+        """Create a new ticket in HubSpot.
+
+        Args:
+            properties: Ticket properties (subject, content, hs_pipeline, hs_pipeline_stage, etc.)
+
+        Returns:
+            JSON string with created ticket data
+        """
+        simple_public_object_input = SimplePublicObjectInputForCreate(
+            properties=properties
+        )
+        api_response = self.client.crm.tickets.basic_api.create(
+            simple_public_object_input_for_create=simple_public_object_input
+        )
+        ticket_dict = api_response.to_dict()
+        converted = convert_datetime_fields(ticket_dict)
+        return json.dumps(converted)
+
+    @handle_hubspot_errors
+    def update(self, ticket_id: str, properties: Dict[str, Any]) -> str:
+        """Update an existing ticket in HubSpot.
+
+        Args:
+            ticket_id: HubSpot ticket ID
+            properties: Dictionary of properties to update
+
+        Returns:
+            JSON string with updated ticket data
+        """
+        simple_public_object_input = SimplePublicObjectInput(
+            properties=properties
+        )
+        api_response = self.client.crm.tickets.basic_api.update(
+            ticket_id=ticket_id,
+            simple_public_object_input=simple_public_object_input
+        )
+        ticket_dict = api_response.to_dict()
+        converted = convert_datetime_fields(ticket_dict)
+        return json.dumps(converted)
+
     @handle_hubspot_errors
     def get_conversation_threads(self, ticket_id: str) -> Dict[str, Any]:
         """Get conversation threads associated with a specific ticket.

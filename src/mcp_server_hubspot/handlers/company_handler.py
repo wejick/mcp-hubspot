@@ -84,6 +84,38 @@ class CompanyHandler(BaseHandler):
             "required": ["company_id"]
         }
 
+    def get_search_companies_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "type": "array",
+                    "description": "List of filter conditions",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "propertyName": {"type": "string", "description": "Property to filter on"},
+                            "operator": {
+                                "type": "string",
+                                "enum": ["EQ", "NEQ", "LT", "LTE", "GT", "GTE", "CONTAINS_TOKEN", "HAS_PROPERTY"],
+                                "description": "Filter operator"
+                            },
+                            "value": {"type": "string", "description": "Filter value"}
+                        },
+                        "required": ["propertyName", "operator"]
+                    }
+                },
+                "properties": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional list of properties to retrieve"
+                },
+                "limit": {"type": "integer", "description": "Maximum number of results to return (default: 10)"},
+                "sort_property": {"type": "string", "description": "Property to sort by (default: lastmodifieddate)"}
+            },
+            "required": ["filters"]
+        }
+
     def get_update_company_schema(self) -> Dict[str, Any]:
         """Get the input schema for updating a company by ID.
 
@@ -239,6 +271,24 @@ class CompanyHandler(BaseHandler):
             self.store_in_faiss_safely(data, "company", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing company data: {str(e)}")
+
+        return self.create_text_response(results)
+
+    def search_companies(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
+        self.validate_required_arguments(arguments, ["filters"])
+
+        filters = arguments["filters"]
+        properties = arguments.get("properties")
+        limit = int(self.get_argument_with_default(arguments, "limit", 10) or 10)
+        sort_property = self.get_argument_with_default(arguments, "sort_property", "lastmodifieddate")
+
+        results = self.hubspot.companies.search(filters, properties, limit, sort_property)
+
+        try:
+            data = json.loads(results)
+            self.store_in_faiss_safely(data.get("results", []), "company", {"filters": filters})
+        except Exception as e:
+            self.logger.error(f"Error storing company search results in FAISS: {str(e)}")
 
         return self.create_text_response(results)
 
