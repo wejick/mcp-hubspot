@@ -1,5 +1,5 @@
 # Use Python base image
-FROM python:3.10-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 # Install the project into `/app`
 WORKDIR /app
