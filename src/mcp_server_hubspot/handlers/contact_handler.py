@@ -278,6 +278,62 @@ class ContactHandler(BaseHandler):
 
         return self.create_text_response(results)
 
+    def get_query_contacts_schema(self) -> Dict[str, Any]:
+        """Merged list+search schema. filters is optional — omit to list recent contacts."""
+        return {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "type": "array",
+                    "description": "Filter conditions. Omit to list recently active contacts.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "propertyName": {"type": "string"},
+                            "operator": {
+                                "type": "string",
+                                "enum": ["EQ", "NEQ", "LT", "LTE", "GT", "GTE", "CONTAINS_TOKEN", "HAS_PROPERTY"]
+                            },
+                            "value": {"type": "string"}
+                        },
+                        "required": ["propertyName", "operator"]
+                    }
+                },
+                "properties": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Properties to return. Default: all."
+                },
+                "limit": {"type": "integer", "description": "Max results (default: 10)"},
+                "sort_property": {"type": "string", "description": "Sort by (default: lastmodifieddate)"}
+            }
+        }
+
+    def query_contacts(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
+        """List recent contacts (no filters) or search with filters."""
+        filters = (arguments or {}).get("filters")
+
+        if filters:
+            properties = (arguments or {}).get("properties")
+            limit = int(self.get_argument_with_default(arguments, "limit", 10) or 10)
+            sort_property = self.get_argument_with_default(arguments, "sort_property", "lastmodifieddate")
+            results = self.hubspot.contacts.search(filters, properties, limit, sort_property)
+            try:
+                data = json.loads(results)
+                self.store_in_faiss_safely(data.get("results", []), "contact", {"filters": filters})
+            except Exception as e:
+                self.logger.error(f"Error storing contact search results in FAISS: {str(e)}")
+        else:
+            limit = int(self.get_argument_with_default(arguments, "limit", 10) or 10)
+            results = self.hubspot.get_recent_contacts(limit=limit)
+            try:
+                data = json.loads(results)
+                self.store_in_faiss_safely(data, "contact", {"limit": limit})
+            except Exception as e:
+                self.logger.error(f"Error storing contact list in FAISS: {str(e)}")
+
+        return self.create_text_response(results)
+
     def update_contact(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
         """Update a specific contact by ID in HubSpot.
 

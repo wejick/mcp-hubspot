@@ -75,18 +75,32 @@ class BaseHandler:
         except Exception as e:
             self.logger.error(f"Error storing {data_type} in FAISS: {str(e)}", exc_info=True)
     
+    def _strip_nulls(self, data: Any) -> Any:
+        """Recursively remove None values from dicts and empty strings from responses."""
+        if isinstance(data, dict):
+            return {k: self._strip_nulls(v) for k, v in data.items() if v is not None}
+        if isinstance(data, list):
+            return [self._strip_nulls(item) for item in data]
+        return data
+
     def create_text_response(self, content: Any) -> List[types.TextContent]:
-        """Create a text response from content.
-        
+        """Create a text response from content, stripping null fields to reduce token usage.
+
         Args:
             content: Content to return (will be converted to JSON if not string)
-            
+
         Returns:
             List containing a TextContent object
         """
-        if not isinstance(content, str):
-            content = json.dumps(content)
-            
+        if isinstance(content, str):
+            try:
+                parsed = json.loads(content)
+                content = json.dumps(self._strip_nulls(parsed))
+            except (json.JSONDecodeError, TypeError):
+                pass  # leave non-JSON strings untouched
+        else:
+            content = json.dumps(self._strip_nulls(content))
+
         return [types.TextContent(type="text", text=content)]
     
     def validate_required_arguments(self, arguments: Optional[Dict[str, Any]], required_keys: List[str]) -> None:

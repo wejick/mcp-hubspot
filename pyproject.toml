@@ -15,3 +15,5 @@ dev-dependencies = ["pyright>=1.1.389"]
 
 [project.scripts]
 mcp-server-hubspot = "mcp_server_hubspot:run_main"
+mcp-server-hubspot-contacts = "mcp_server_hubspot.server_contacts:run_main"
+mcp-server-hubspot-deals = "mcp_server_hubspot.server_deals:run_main"
