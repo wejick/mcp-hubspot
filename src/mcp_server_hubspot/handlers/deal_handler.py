@@ -97,6 +97,62 @@ class DealHandler(BaseHandler):
             "required": ["filters"]
         }
 
+    def get_query_deals_schema(self) -> Dict[str, Any]:
+        """Merged list+search schema. filters is optional — omit to list recently modified deals."""
+        return {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "type": "array",
+                    "description": "Filter conditions. Omit to list recently modified deals.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "propertyName": {"type": "string"},
+                            "operator": {
+                                "type": "string",
+                                "enum": ["EQ", "NEQ", "LT", "LTE", "GT", "GTE", "CONTAINS_TOKEN", "HAS_PROPERTY"]
+                            },
+                            "value": {"type": "string"}
+                        },
+                        "required": ["propertyName", "operator"]
+                    }
+                },
+                "properties": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Properties to return. Default: all."
+                },
+                "limit": {"type": "integer", "description": "Max results (default: 10)"},
+                "sort_property": {"type": "string", "description": "Sort by (default: hs_lastmodifieddate)"}
+            }
+        }
+
+    def query_deals(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
+        """List recently modified deals (no filters) or search with filters."""
+        filters = (arguments or {}).get("filters")
+
+        if filters:
+            properties = (arguments or {}).get("properties")
+            limit = int(self.get_argument_with_default(arguments, "limit", 10) or 10)
+            sort_property = self.get_argument_with_default(arguments, "sort_property", "hs_lastmodifieddate")
+            results = self.hubspot.deals.search(filters, properties, limit, sort_property)
+            try:
+                data = json.loads(results)
+                self.store_in_faiss_safely(data.get("results", []), "deal", {"filters": filters})
+            except Exception as e:
+                self.logger.error(f"Error storing deal search results in FAISS: {str(e)}")
+        else:
+            limit = int(self.get_argument_with_default(arguments, "limit", 10) or 10)
+            results = self.hubspot.deals.get_recent(limit)
+            try:
+                data = json.loads(results)
+                self.store_in_faiss_safely(data.get("results", []), "deal", {"limit": limit})
+            except Exception as e:
+                self.logger.error(f"Error storing deal list in FAISS: {str(e)}")
+
+        return self.create_text_response(results)
+
     def create_deal(self, arguments: Optional[Dict[str, Any]]) -> List[types.TextContent]:
         self.validate_required_arguments(arguments, ["dealname"])
 

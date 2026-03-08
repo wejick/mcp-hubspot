@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "hubspot": {
+      "command": "mcp-server-hubspot",
+      "args": [],
+      "env": {
+        "HUBSPOT_ACCESS_TOKEN": "${HUBSPOT_ACCESS_TOKEN}",
+        "HUBSPOT_STORAGE_DIR_LOCAL": "${HUBSPOT_STORAGE_DIR_LOCAL:-/storage}"
+      },
+      "description": "Full HubSpot MCP server — all 34 tools. Use for admin tasks or when multiple domains are needed in one session."
+    },
+    "hubspot-contacts": {
+      "command": "mcp-server-hubspot-contacts",
+      "args": [],
+      "env": {
+        "HUBSPOT_ACCESS_TOKEN": "${HUBSPOT_ACCESS_TOKEN}",
+        "HUBSPOT_STORAGE_DIR_LOCAL": "${HUBSPOT_STORAGE_DIR_LOCAL:-/storage}"
+      },
+      "description": "Contacts-only server — 5 tools. Paired with /hubspot-contacts skill."
+    },
+    "hubspot-deals": {
+      "command": "mcp-server-hubspot-deals",
+      "args": [],
+      "env": {
+        "HUBSPOT_ACCESS_TOKEN": "${HUBSPOT_ACCESS_TOKEN}",
+        "HUBSPOT_STORAGE_DIR_LOCAL": "${HUBSPOT_STORAGE_DIR_LOCAL:-/storage}"
+      },
+      "description": "Deals + pipeline server — 7 tools. Paired with /hubspot-deals skill."
+    }
+  }
+}
