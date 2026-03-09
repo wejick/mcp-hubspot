@@ -19,8 +19,8 @@ from pydantic import AnyUrl
 from sentence_transformers import SentenceTransformer
 
 from .hubspot_client import HubSpotClient, ApiException
-from .faiss_manager import FaissManager
-from .utils import store_in_faiss, search_in_faiss
+from .sqlite_manager import SqliteManager
+from .utils import store_in_sqlite, search_in_sqlite
 from .handlers.company_handler import CompanyHandler
 from .handlers.contact_handler import ContactHandler
 from .handlers.conversation_handler import ConversationHandler
@@ -42,20 +42,20 @@ async def main(access_token: Optional[str] = None):
     
     # Initialize dependencies
     embedding_model = initialize_embedding_model()
-    faiss_manager = initialize_faiss_manager(embedding_model)
+    sqlite_manager = initialize_sqlite_manager(embedding_model)
     hubspot_client = initialize_hubspot_client(access_token)
-    
+
     # Initialize handlers with dependencies
-    company_handler = CompanyHandler(hubspot_client, faiss_manager, embedding_model)
-    contact_handler = ContactHandler(hubspot_client, faiss_manager, embedding_model)
-    conversation_handler = ConversationHandler(hubspot_client, faiss_manager, embedding_model)
-    ticket_handler = TicketHandler(hubspot_client, faiss_manager, embedding_model)
-    search_handler = SearchHandler(faiss_manager, embedding_model)
-    property_handler = PropertyHandler(hubspot_client, faiss_manager, embedding_model)
-    deal_handler = DealHandler(hubspot_client, faiss_manager, embedding_model)
-    association_handler = AssociationHandler(hubspot_client, faiss_manager, embedding_model)
-    engagement_handler = EngagementHandler(hubspot_client, faiss_manager, embedding_model)
-    pipeline_handler = PipelineHandler(hubspot_client, faiss_manager, embedding_model)
+    company_handler = CompanyHandler(hubspot_client, sqlite_manager, embedding_model)
+    contact_handler = ContactHandler(hubspot_client, sqlite_manager, embedding_model)
+    conversation_handler = ConversationHandler(hubspot_client, sqlite_manager, embedding_model)
+    ticket_handler = TicketHandler(hubspot_client, sqlite_manager, embedding_model)
+    search_handler = SearchHandler(sqlite_manager, embedding_model)
+    property_handler = PropertyHandler(hubspot_client, sqlite_manager, embedding_model)
+    deal_handler = DealHandler(hubspot_client, sqlite_manager, embedding_model)
+    association_handler = AssociationHandler(hubspot_client, sqlite_manager, embedding_model)
+    engagement_handler = EngagementHandler(hubspot_client, sqlite_manager, embedding_model)
+    pipeline_handler = PipelineHandler(hubspot_client, sqlite_manager, embedding_model)
 
     # Create server
     server = create_server_with_handlers(
@@ -106,19 +106,19 @@ def initialize_embedding_model() -> SentenceTransformer:
     
     return embedding_model
 
-def initialize_faiss_manager(embedding_model: SentenceTransformer) -> FaissManager:
-    """Initialize and return the FAISS manager."""
+def initialize_sqlite_manager(embedding_model: SentenceTransformer) -> SqliteManager:
+    """Initialize and return the SQLite manager."""
     storage_dir = os.getenv("HUBSPOT_STORAGE_DIR_LOCAL", "/storage")
     logger.info(f"Using storage directory: {storage_dir}")
-    
+
     embedding_dim = embedding_model.get_sentence_embedding_dimension()
-    faiss_manager = FaissManager(
+    sqlite_manager = SqliteManager(
         storage_dir=storage_dir,
         embedding_dimension=embedding_dim
     )
-    logger.info(f"FAISS manager initialized with dimension {embedding_dim}")
-    
-    return faiss_manager
+    logger.info(f"SQLite manager initialized with dimension {embedding_dim}")
+
+    return sqlite_manager
 
 def initialize_hubspot_client(access_token: Optional[str]) -> HubSpotClient:
     """Initialize and return the HubSpot client."""

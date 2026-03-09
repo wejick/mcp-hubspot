@@ -10,40 +10,40 @@ import mcp.types as types
 from sentence_transformers import SentenceTransformer
 
 from ..hubspot_client import HubSpotClient
-from ..faiss_manager import FaissManager
-from ..utils import store_in_faiss
+from ..sqlite_manager import SqliteManager
+from ..utils import store_in_sqlite
 
 class BaseHandler:
     """Base class for all HubSpot tool handlers."""
-    
+
     def __init__(
-        self, 
-        hubspot_client: HubSpotClient, 
-        faiss_manager: FaissManager,
+        self,
+        hubspot_client: HubSpotClient,
+        sqlite_manager: SqliteManager,
         embedding_model: SentenceTransformer,
         logger_name: str = "base_handler"
     ):
         """Initialize the base handler with common dependencies.
-        
+
         Args:
             hubspot_client: HubSpot client
-            faiss_manager: FAISS vector store manager
+            sqlite_manager: SQLite vector store manager
             embedding_model: Sentence transformer model
             logger_name: Name for this handler's logger
         """
         self.hubspot = hubspot_client
-        self.faiss_manager = faiss_manager
+        self.sqlite_manager = sqlite_manager
         self.embedding_model = embedding_model
         self.logger = logging.getLogger(f'mcp_hubspot_server.{logger_name}')
-    
+
     def store_in_faiss_safely(
-        self, 
-        data: Any, 
-        data_type: str, 
+        self,
+        data: Any,
+        data_type: str,
         metadata_extras: Optional[Dict[str, Any]] = None
     ) -> None:
-        """Safely store data in FAISS with error handling.
-        
+        """Safely store data in the SQLite vector store with error handling.
+
         Args:
             data: Data to store
             data_type: Type of data being stored
@@ -51,29 +51,28 @@ class BaseHandler:
         """
         try:
             if not data:
-                self.logger.debug(f"No {data_type} data to store in FAISS")
+                self.logger.debug(f"No {data_type} data to store in SQLite")
                 return
-                
-            self.logger.debug(f"Storing {data_type} data in FAISS")
-            
+
+            self.logger.debug(f"Storing {data_type} data in SQLite")
+
             if metadata_extras:
                 self.logger.debug(f"With metadata: {metadata_extras}")
-                
-            store_in_faiss(
-                faiss_manager=self.faiss_manager,
+
+            store_in_sqlite(
+                sqlite_manager=self.sqlite_manager,
                 data=data,
                 data_type=data_type,
                 model=self.embedding_model,
                 metadata_extras=metadata_extras
             )
-            
-            # Save the index
-            self.logger.debug("Saving FAISS index")
-            self.faiss_manager.save_today_index()
-            self.logger.debug("FAISS index saved")
+
+            # SQLite writes are immediately durable; save_today_index is a no-op
+            self.logger.debug("Data stored in SQLite")
+            self.sqlite_manager.save_today_index()
             
         except Exception as e:
-            self.logger.error(f"Error storing {data_type} in FAISS: {str(e)}", exc_info=True)
+            self.logger.error(f"Error storing {data_type} in SQLite: {str(e)}", exc_info=True)
     
     def _strip_nulls(self, data: Any) -> Any:
         """Recursively remove None values from dicts and empty strings from responses."""

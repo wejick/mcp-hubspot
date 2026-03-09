@@ -7,7 +7,6 @@ import json
 import mcp.types as types
 
 from ..hubspot_client import HubSpotClient, ApiException
-from ..faiss_manager import FaissManager
 from .base_handler import BaseHandler
 
 class CompanyHandler(BaseHandler):
