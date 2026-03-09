@@ -14,10 +14,9 @@ from mcp.server.models import InitializationOptions
 import mcp.server.stdio
 import mcp.types as types
 
-from .faiss_manager import FaissManager
 from .handlers.contact_handler import ContactHandler
 from .hubspot_client import HubSpotClient, ApiException
-from .server import initialize_embedding_model, initialize_faiss_manager, initialize_hubspot_client
+from .server import initialize_embedding_model, initialize_sqlite_manager, initialize_hubspot_client
 
 logger = logging.getLogger("mcp_hubspot_contacts")
 load_dotenv()
@@ -78,10 +77,10 @@ def create_contacts_server(
 
 async def main(access_token: Optional[str] = None):
     embedding_model = initialize_embedding_model()
-    faiss_manager = initialize_faiss_manager(embedding_model)
+    sqlite_manager = initialize_sqlite_manager(embedding_model)
     hubspot_client = initialize_hubspot_client(access_token)
 
-    contact_handler = ContactHandler(hubspot_client, faiss_manager, embedding_model)
+    contact_handler = ContactHandler(hubspot_client, sqlite_manager, embedding_model)
     server = create_contacts_server(contact_handler)
 
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):

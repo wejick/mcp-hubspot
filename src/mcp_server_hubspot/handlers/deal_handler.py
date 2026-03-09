@@ -139,7 +139,7 @@ class DealHandler(BaseHandler):
             results = self.hubspot.deals.search(filters, properties, limit, sort_property)
             try:
                 data = json.loads(results)
-                self.store_in_faiss_safely(data.get("results", []), "deal", {"filters": filters})
+                self.store_safely(data.get("results", []), "deal", {"filters": filters})
             except Exception as e:
                 self.logger.error(f"Error storing deal search results in FAISS: {str(e)}")
         else:
@@ -147,7 +147,7 @@ class DealHandler(BaseHandler):
             results = self.hubspot.deals.get_recent(limit)
             try:
                 data = json.loads(results)
-                self.store_in_faiss_safely(data.get("results", []), "deal", {"limit": limit})
+                self.store_safely(data.get("results", []), "deal", {"limit": limit})
             except Exception as e:
                 self.logger.error(f"Error storing deal list in FAISS: {str(e)}")
 
@@ -167,7 +167,7 @@ class DealHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "deal", {"action": "created"})
+            self.store_safely([data], "deal", {"action": "created"})
         except Exception as e:
             self.logger.error(f"Error storing deal in FAISS: {str(e)}")
 
@@ -183,7 +183,7 @@ class DealHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "deal", {"deal_id": deal_id})
+            self.store_safely([data], "deal", {"deal_id": deal_id})
         except Exception as e:
             self.logger.error(f"Error storing deal in FAISS: {str(e)}")
 
@@ -199,7 +199,7 @@ class DealHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "deal", {"deal_id": deal_id, "updated": True})
+            self.store_safely([data], "deal", {"deal_id": deal_id, "updated": True})
         except Exception as e:
             self.logger.error(f"Error storing deal in FAISS: {str(e)}")
 
@@ -213,7 +213,7 @@ class DealHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(data.get("results", []), "deal", {"limit": limit})
+            self.store_safely(data.get("results", []), "deal", {"limit": limit})
         except Exception as e:
             self.logger.error(f"Error storing deals in FAISS: {str(e)}")
 
@@ -231,7 +231,7 @@ class DealHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(data.get("results", []), "deal", {"filters": filters})
+            self.store_safely(data.get("results", []), "deal", {"filters": filters})
         except Exception as e:
             self.logger.error(f"Error storing deal search results in FAISS: {str(e)}")
 

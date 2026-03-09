@@ -117,7 +117,7 @@ class EngagementHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "note", {"associations": arguments.get("associations", [])})
+            self.store_safely([data], "note", {"associations": arguments.get("associations", [])})
         except Exception as e:
             self.logger.error(f"Error storing note in FAISS: {str(e)}")
 
@@ -137,7 +137,7 @@ class EngagementHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "meeting", {"associations": arguments.get("associations", [])})
+            self.store_safely([data], "meeting", {"associations": arguments.get("associations", [])})
         except Exception as e:
             self.logger.error(f"Error storing meeting in FAISS: {str(e)}")
 
@@ -161,7 +161,7 @@ class EngagementHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "call", {"associations": arguments.get("associations", [])})
+            self.store_safely([data], "call", {"associations": arguments.get("associations", [])})
         except Exception as e:
             self.logger.error(f"Error storing call in FAISS: {str(e)}")
 
@@ -181,7 +181,7 @@ class EngagementHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "task", {"associations": arguments.get("associations", [])})
+            self.store_safely([data], "task", {"associations": arguments.get("associations", [])})
         except Exception as e:
             self.logger.error(f"Error storing task in FAISS: {str(e)}")
 

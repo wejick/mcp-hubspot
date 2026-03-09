@@ -18,7 +18,7 @@ import mcp.types as types
 from .handlers.deal_handler import DealHandler
 from .handlers.pipeline_handler import PipelineHandler
 from .hubspot_client import HubSpotClient, ApiException
-from .server import initialize_embedding_model, initialize_faiss_manager, initialize_hubspot_client
+from .server import initialize_embedding_model, initialize_sqlite_manager, initialize_hubspot_client
 
 logger = logging.getLogger("mcp_hubspot_deals")
 load_dotenv()
@@ -94,11 +94,11 @@ def create_deals_server(
 
 async def main(access_token: Optional[str] = None):
     embedding_model = initialize_embedding_model()
-    faiss_manager = initialize_faiss_manager(embedding_model)
+    sqlite_manager = initialize_sqlite_manager(embedding_model)
     hubspot_client = initialize_hubspot_client(access_token)
 
-    deal_handler = DealHandler(hubspot_client, faiss_manager, embedding_model)
-    pipeline_handler = PipelineHandler(hubspot_client, faiss_manager, embedding_model)
+    deal_handler = DealHandler(hubspot_client, sqlite_manager, embedding_model)
+    pipeline_handler = PipelineHandler(hubspot_client, sqlite_manager, embedding_model)
     server = create_deals_server(deal_handler, pipeline_handler)
 
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):

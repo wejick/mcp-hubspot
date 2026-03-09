@@ -7,26 +7,26 @@ import json
 import mcp.types as types
 from sentence_transformers import SentenceTransformer
 
-from ..faiss_manager import FaissManager
-from ..utils import search_in_faiss
+from ..sqlite_manager import SqliteManager
+from ..utils import search_in_sqlite
 from .base_handler import BaseHandler
 
 class SearchHandler(BaseHandler):
     """Handler for search operations on indexed HubSpot data."""
-    
+
     def __init__(
-        self, 
-        faiss_manager: FaissManager,
+        self,
+        sqlite_manager: SqliteManager,
         embedding_model: SentenceTransformer,
     ):
         """Initialize the search handler.
-        
+
         Args:
-            faiss_manager: FAISS vector store manager
+            sqlite_manager: SQLite vector store manager
             embedding_model: Sentence transformer model
         """
-        # Note: This handler doesn't need the HubSpot client, only the FAISS components
-        super().__init__(None, faiss_manager, embedding_model, "search_handler")
+        # Note: This handler doesn't need the HubSpot client, only the vector store components
+        super().__init__(None, sqlite_manager, embedding_model, "search_handler")
     
     def get_search_data_schema(self) -> Dict[str, Any]:
         """Get the input schema for data search.
@@ -60,14 +60,14 @@ class SearchHandler(BaseHandler):
         limit = int(limit) if limit is not None else 10
         
         try:
-            results, _ = search_in_faiss(
-                faiss_manager=self.faiss_manager,
+            results, _ = search_in_sqlite(
+                sqlite_manager=self.sqlite_manager,
                 query=query,
                 model=self.embedding_model,
                 limit=limit
             )
-            
+
             return self.create_text_response(results)
         except Exception as e:
-            self.logger.error(f"Error searching in FAISS: {str(e)}")
+            self.logger.error(f"Error searching in SQLite: {str(e)}")
             return self.create_text_response(f"Error searching data: {str(e)}")

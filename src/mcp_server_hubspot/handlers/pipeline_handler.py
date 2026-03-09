@@ -117,7 +117,7 @@ class PipelineHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(
+            self.store_safely(
                 data.get("results", []), "pipeline",
                 {"object_type": arguments["object_type"]}
             )
@@ -135,7 +135,7 @@ class PipelineHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(
+            self.store_safely(
                 [data], "pipeline",
                 {"object_type": arguments["object_type"], "pipeline_id": arguments["pipeline_id"]}
             )
@@ -155,7 +155,7 @@ class PipelineHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(
+            self.store_safely(
                 [data], "pipeline",
                 {"object_type": arguments["object_type"], "label": arguments["label"]}
             )
@@ -173,7 +173,7 @@ class PipelineHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(
+            self.store_safely(
                 data.get("results", []), "pipeline_stage",
                 {"object_type": arguments["object_type"], "pipeline_id": arguments["pipeline_id"]}
             )
@@ -194,7 +194,7 @@ class PipelineHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(
+            self.store_safely(
                 [data], "deal",
                 {"deal_id": deal_id, "stage_id": arguments["stage_id"], "action": "stage_moved"}
             )
