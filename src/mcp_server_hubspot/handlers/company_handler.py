@@ -215,7 +215,7 @@ class CompanyHandler(BaseHandler):
         try:
             data = json.loads(results)
             metadata_extras = {"company_id": arguments["company_id"]}
-            self.store_in_faiss_safely(data, "company_activity", metadata_extras)
+            self.store_safely(data, "company_activity", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing company activity data: {str(e)}")
         
@@ -241,7 +241,7 @@ class CompanyHandler(BaseHandler):
         try:
             data = json.loads(results)
             metadata_extras = {"limit": limit}
-            self.store_in_faiss_safely(data, "company", metadata_extras)
+            self.store_safely(data, "company", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing company data: {str(e)}")
 
@@ -267,7 +267,7 @@ class CompanyHandler(BaseHandler):
         try:
             data = json.loads(results)
             metadata_extras = {"company_id": company_id}
-            self.store_in_faiss_safely(data, "company", metadata_extras)
+            self.store_safely(data, "company", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing company data: {str(e)}")
 
@@ -285,7 +285,7 @@ class CompanyHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(data.get("results", []), "company", {"filters": filters})
+            self.store_safely(data.get("results", []), "company", {"filters": filters})
         except Exception as e:
             self.logger.error(f"Error storing company search results in FAISS: {str(e)}")
 
@@ -311,7 +311,7 @@ class CompanyHandler(BaseHandler):
         try:
             data = json.loads(results)
             metadata_extras = {"company_id": company_id, "updated": True}
-            self.store_in_faiss_safely(data, "company", metadata_extras)
+            self.store_safely(data, "company", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing updated company data: {str(e)}")
 

@@ -93,7 +93,7 @@ class ConversationHandler(BaseHandler):
                     self.logger.debug(f"Storing thread {i+1}/{len(data)} with ID {thread_metadata['thread_id']}")
                     
                     # Store single thread as a list with one item to maintain format compatibility
-                    self.store_in_faiss_safely(
+                    self.store_safely(
                         data=[thread],  # Store as single-item list
                         data_type="conversation_thread",
                         metadata_extras=thread_metadata

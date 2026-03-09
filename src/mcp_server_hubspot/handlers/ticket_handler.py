@@ -166,7 +166,7 @@ class TicketHandler(BaseHandler):
                 self.logger.debug(f"Preparing to store {len(data)} tickets in FAISS")
                 self.logger.debug(f"Metadata extras: {metadata_extras}")
                 
-                self.store_in_faiss_safely(
+                self.store_safely(
                     data=data,
                     data_type="ticket",
                     metadata_extras=metadata_extras
@@ -188,7 +188,7 @@ class TicketHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "ticket", {"action": "created"})
+            self.store_safely([data], "ticket", {"action": "created"})
         except Exception as e:
             self.logger.error(f"Error storing ticket in FAISS: {str(e)}")
 
@@ -204,7 +204,7 @@ class TicketHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "ticket", {"ticket_id": ticket_id, "updated": True})
+            self.store_safely([data], "ticket", {"ticket_id": ticket_id, "updated": True})
         except Exception as e:
             self.logger.error(f"Error storing ticket in FAISS: {str(e)}")
 
@@ -220,7 +220,7 @@ class TicketHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely([data], "ticket", {"ticket_id": ticket_id})
+            self.store_safely([data], "ticket", {"ticket_id": ticket_id})
         except Exception as e:
             self.logger.error(f"Error storing ticket in FAISS: {str(e)}")
 
@@ -293,7 +293,7 @@ class TicketHandler(BaseHandler):
                 self.logger.debug(f"Preparing to store {len(threads_data)} conversation threads in FAISS")
                 self.logger.debug(f"Metadata extras: {metadata_extras}")
                 
-                self.store_in_faiss_safely(
+                self.store_safely(
                     data=threads_data,
                     data_type="ticket_conversation_thread",
                     metadata_extras=metadata_extras

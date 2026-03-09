@@ -36,7 +36,7 @@ class BaseHandler:
         self.embedding_model = embedding_model
         self.logger = logging.getLogger(f'mcp_hubspot_server.{logger_name}')
 
-    def store_in_faiss_safely(
+    def store_safely(
         self,
         data: Any,
         data_type: str,
@@ -67,10 +67,8 @@ class BaseHandler:
                 metadata_extras=metadata_extras
             )
 
-            # SQLite writes are immediately durable; save_today_index is a no-op
             self.logger.debug("Data stored in SQLite")
-            self.sqlite_manager.save_today_index()
-            
+
         except Exception as e:
             self.logger.error(f"Error storing {data_type} in SQLite: {str(e)}", exc_info=True)
     

@@ -40,6 +40,8 @@ class SqliteManager:
         self.embedding_dimension = embedding_dimension
 
         os.makedirs(self.storage_dir, exist_ok=True)
+        self._conn = libsql.connect(self._get_db_path())
+        self._conn.execute("PRAGMA journal_mode=WAL")
         self._init_db()
         self._cleanup_old_data()
 
@@ -50,30 +52,22 @@ class SqliteManager:
     def _get_db_path(self) -> str:
         return os.path.join(self.storage_dir, "hubspot_cache.db")
 
-    def _connect(self):
-        """Return a new libSQL connection to the local database file."""
-        return libsql.connect(self._get_db_path())
-
     def _init_db(self) -> None:
         """Create the embeddings table and vector index if they don't exist."""
-        conn = self._connect()
-        try:
-            conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS embeddings (
-                    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                    date      TEXT    NOT NULL,
-                    embedding F32_BLOB({self.embedding_dimension}),
-                    metadata  TEXT    NOT NULL
-                )
-            """)
-            # DiskANN-based approximate nearest-neighbour index
-            conn.execute(
-                f"CREATE INDEX IF NOT EXISTS {_VECTOR_INDEX_NAME} "
-                f"ON embeddings(libsql_vector_idx(embedding))"
+        self._conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS embeddings (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                date      TEXT    NOT NULL,
+                embedding F32_BLOB({self.embedding_dimension}),
+                metadata  TEXT    NOT NULL
             )
-            conn.commit()
-        finally:
-            conn.close()
+        """)
+        # DiskANN-based approximate nearest-neighbour index
+        self._conn.execute(
+            f"CREATE INDEX IF NOT EXISTS {_VECTOR_INDEX_NAME} "
+            f"ON embeddings(libsql_vector_idx(embedding))"
+        )
+        self._conn.commit()
         logger.info("libSQL database initialised at %s", self._get_db_path())
 
     def _get_today_date_str(self) -> str:
@@ -82,13 +76,9 @@ class SqliteManager:
     def _cleanup_old_data(self) -> None:
         """Delete rows that fall outside the rolling retention window."""
         cutoff = (datetime.now() - timedelta(days=self.max_days)).strftime("%Y-%m-%d")
-        conn = self._connect()
-        try:
-            cursor = conn.execute("DELETE FROM embeddings WHERE date < ?", (cutoff,))
-            conn.commit()
-            deleted = cursor.rowcount
-        finally:
-            conn.close()
+        cursor = self._conn.execute("DELETE FROM embeddings WHERE date < ?", (cutoff,))
+        self._conn.commit()
+        deleted = cursor.rowcount
         if deleted:
             logger.info("Removed %d old embedding rows (before %s)", deleted, cutoff)
 
@@ -104,19 +94,16 @@ class SqliteManager:
             metadata_list: One metadata dict per row.
         """
         today = self._get_today_date_str()
-        conn = self._connect()
-        try:
-            for vec, meta in zip(vectors, metadata_list):
-                # libSQL expects a JSON array string for the vector() function
-                vec_json = json.dumps(vec.astype(np.float32).tolist())
-                conn.execute(
-                    "INSERT INTO embeddings (date, embedding, metadata) "
-                    "VALUES (?, vector(?), ?)",
-                    (today, vec_json, json.dumps(meta)),
-                )
-            conn.commit()
-        finally:
-            conn.close()
+        rows = [
+            (today, json.dumps(vec.astype(np.float32).tolist()), json.dumps(meta))
+            for vec, meta in zip(vectors, metadata_list)
+        ]
+        self._conn.executemany(
+            "INSERT INTO embeddings (date, embedding, metadata) "
+            "VALUES (?, vector(?), ?)",
+            rows,
+        )
+        self._conn.commit()
         logger.info("Added %d vectors to libSQL for %s", len(vectors), today)
 
     def search(self, query_vector: np.ndarray, k: int = 10) -> Tuple[List[Dict[str, Any]], List[float]]:
@@ -127,7 +114,7 @@ class SqliteManager:
         with ``1.0 - distance / 2.0``.
 
         Args:
-            query_vector: 1-D or 2-D (1 × dim) float array.
+            query_vector: 1-D or 2-D (1 x dim) float array.
             k: Maximum number of results to return.
 
         Returns:
@@ -138,20 +125,16 @@ class SqliteManager:
             query = query[0]
         query_json = json.dumps(query.tolist())
 
-        conn = self._connect()
-        try:
-            rows = conn.execute(
-                f"""
-                SELECT e.metadata,
-                       vector_distance_cos(e.embedding, vector(?)) AS distance
-                FROM   vector_top_k('{_VECTOR_INDEX_NAME}', vector(?), ?) AS i
-                JOIN   embeddings e ON i.id = e.rowid
-                ORDER  BY distance
-                """,
-                (query_json, query_json, k),
-            ).fetchall()
-        finally:
-            conn.close()
+        rows = self._conn.execute(
+            f"""
+            SELECT e.metadata,
+                   vector_distance_cos(e.embedding, vector(?)) AS distance
+            FROM   vector_top_k('{_VECTOR_INDEX_NAME}', vector(?), ?) AS i
+            JOIN   embeddings e ON i.id = e.rowid
+            ORDER  BY distance
+            """,
+            (query_json, query_json, k),
+        ).fetchall()
 
         if not rows:
             return [], []
@@ -161,9 +144,7 @@ class SqliteManager:
         return metadata_list, distances
 
     def save_today_index(self) -> None:
-        """No-op: libSQL commits are immediately durable."""
-        logger.debug("save_today_index called (no-op for libSQL backend)")
+        """No-op kept for backward compatibility."""
 
     def save_all_indexes(self) -> None:
-        """No-op: libSQL commits are immediately durable."""
-        logger.debug("save_all_indexes called (no-op for libSQL backend)")
+        """No-op kept for backward compatibility."""

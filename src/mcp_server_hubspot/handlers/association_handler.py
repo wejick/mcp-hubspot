@@ -108,7 +108,7 @@ class AssociationHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(
+            self.store_safely(
                 data.get("results", []),
                 "association",
                 {

@@ -228,7 +228,7 @@ class ContactHandler(BaseHandler):
         try:
             data = json.loads(results)
             metadata_extras = {"limit": limit}
-            self.store_in_faiss_safely(data, "contact", metadata_extras)
+            self.store_safely(data, "contact", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing contact data: {str(e)}")
 
@@ -254,7 +254,7 @@ class ContactHandler(BaseHandler):
         try:
             data = json.loads(results)
             metadata_extras = {"contact_id": contact_id}
-            self.store_in_faiss_safely(data, "contact", metadata_extras)
+            self.store_safely(data, "contact", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing contact data: {str(e)}")
 
@@ -272,7 +272,7 @@ class ContactHandler(BaseHandler):
 
         try:
             data = json.loads(results)
-            self.store_in_faiss_safely(data.get("results", []), "contact", {"filters": filters})
+            self.store_safely(data.get("results", []), "contact", {"filters": filters})
         except Exception as e:
             self.logger.error(f"Error storing contact search results in FAISS: {str(e)}")
 
@@ -320,7 +320,7 @@ class ContactHandler(BaseHandler):
             results = self.hubspot.contacts.search(filters, properties, limit, sort_property)
             try:
                 data = json.loads(results)
-                self.store_in_faiss_safely(data.get("results", []), "contact", {"filters": filters})
+                self.store_safely(data.get("results", []), "contact", {"filters": filters})
             except Exception as e:
                 self.logger.error(f"Error storing contact search results in FAISS: {str(e)}")
         else:
@@ -328,7 +328,7 @@ class ContactHandler(BaseHandler):
             results = self.hubspot.get_recent_contacts(limit=limit)
             try:
                 data = json.loads(results)
-                self.store_in_faiss_safely(data, "contact", {"limit": limit})
+                self.store_safely(data, "contact", {"limit": limit})
             except Exception as e:
                 self.logger.error(f"Error storing contact list in FAISS: {str(e)}")
 
@@ -354,7 +354,7 @@ class ContactHandler(BaseHandler):
         try:
             data = json.loads(results)
             metadata_extras = {"contact_id": contact_id, "updated": True}
-            self.store_in_faiss_safely(data, "contact", metadata_extras)
+            self.store_safely(data, "contact", metadata_extras)
         except Exception as e:
             self.logger.error(f"Error parsing updated contact data: {str(e)}")
 
